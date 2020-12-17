@@ -16,9 +16,9 @@ class Todo:
             if command == 'add':
                 self.add()
             elif command == 'show_now':
-                self.show_now()
+                self.show()
             elif command == 'show_finish':
-                self.show_finish()
+                self.show(False)
             elif command == 'finish':
                 self.finish()
             elif command == 'clear':
@@ -35,7 +35,7 @@ class Todo:
         self.run_sql(sql, values)
 
         print('\n' + name + '已添加为当前任务')
-        self.show_now()
+        self.show()
 
     def finish(self):
         """选择一项任务标记完成"""
@@ -66,35 +66,27 @@ class Todo:
             except KeyError:
                 print('无效编号')
 
-            self.show_now()
+            self.show()
 
-    def show_now(self):
-        """展示所有未完成任务"""
+    def show(self, now=True):
+        """展示任务,True展示当前，False展示完成"""
 
-        sql = """
-        select name from to_do_list where now = True
-        """
+        if now:
+            sql = """select name from to_do_list where now = True"""
+        else:
+            sql = """select name from to_do_list where now = False"""
+
         data = self.show_sql(sql)
 
-        if data.empty:
+        if data.empty and now:
             print('\n当前没有任务')
-        else:
+        elif data.empty and not now:
+            print('\n当前没有未完成任务')
+        elif not data.empty and now:
             print('\n当前任务有：')
             for v in data['name']:
                 print(v)
-
-    def show_finish(self):
-        """展示所有完成任务"""
-
-        sql = """
-        select name from to_do_list
-        where now = False
-        """
-        data = self.show_sql(sql)
-
-        if data.empty:
-            print('\n当前没有未完成任务')
-        else:
+        elif not data.empty and not now:
             print('\n已完成任务有：')
             for v in data['name']:
                 print(v)
