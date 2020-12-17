@@ -4,8 +4,6 @@ import pandas as pd
 
 class Todo:
     SUPPORTED_COMMANDS = ['add', 'show_now', 'show_finish', 'finish', 'clear', 'exit']
-    db = pymysql.connect(host='localhost', user='root', password='700617',
-                         database='todo', charset='utf8')
 
     def run(self):
         while True:
@@ -32,16 +30,9 @@ class Todo:
         """增加一条任务"""
 
         name = input('请输入任务名称：')
-
-        db = pymysql.connect(host='localhost', user='root', password='700617',
-                             database='todo', charset='utf8')
-        cursor = db.cursor()
-        query = """insert into to_do_list (name, finish) values (%s, %s)"""
-        values = (name, '否')
-        cursor.execute(query, values)
-        cursor.close()
-        db.commit()
-        db.close()
+        sql = """insert into to_do_list (name, now) values (%s, %s)"""
+        values = (name, True)
+        self.run_sql(sql, values)
 
         print('\n' + name + '已添加为当前任务')
         self.show_now()
@@ -49,14 +40,11 @@ class Todo:
     def finish(self):
         """选择一项任务标记完成"""
 
-        db = pymysql.connect(host='localhost', user='root', password='700617',
-                             database='todo', charset='utf8')
-
         sql = """
         select name from to_do_list
-        where finish = '否'
+        where now = True
         """
-        data = pd.read_sql(sql, db)
+        data = self.show_sql(sql)
 
         finish_dir = {}
         key = 1
@@ -71,31 +59,22 @@ class Todo:
             k = input('请选择已完成的编号：')
             try:
                 name = finish_dir[int(k)]
-                cursor = db.cursor()
-                query = """update to_do_list set finish = "是" where name = (%s)"""
+                sql = """update to_do_list set now = False where name = (%s)"""
                 values = name
-                cursor.execute(query, values)
-                cursor.close()
-                db.commit()
-                db.close()
+                self.run_sql(sql, values)
                 print('\n该任务已完成')
             except KeyError:
                 print('无效编号')
 
             self.show_now()
 
-    @staticmethod
-    def show_now():
+    def show_now(self):
         """展示所有未完成任务"""
 
-        db = pymysql.connect(host='localhost', user='root', password='700617',
-                             database='todo', charset='utf8')
-
         sql = """
-        select name from to_do_list
-        where finish = '否'
+        select name from to_do_list where now = True
         """
-        data = pd.read_sql(sql, db)
+        data = self.show_sql(sql)
 
         if data.empty:
             print('\n当前没有任务')
@@ -104,18 +83,14 @@ class Todo:
             for v in data['name']:
                 print(v)
 
-    @staticmethod
-    def show_finish():
+    def show_finish(self):
         """展示所有完成任务"""
-
-        db = pymysql.connect(host='localhost', user='root', password='700617',
-                             database='todo', charset='utf8')
 
         sql = """
         select name from to_do_list
-        where finish = '是'
+        where now = False
         """
-        data = pd.read_sql(sql, db)
+        data = self.show_sql(sql)
 
         if data.empty:
             print('\n当前没有未完成任务')
@@ -124,23 +99,33 @@ class Todo:
             for v in data['name']:
                 print(v)
 
-    @staticmethod
-    def clear():
+    def clear(self):
         """清空所有任务"""
-
-        db = pymysql.connect(host='localhost', user='root', password='700617',
-                             database='todo', charset='utf8')
 
         sql = """
         delete from to_do_list
         """
+        self.run_sql(sql)
+
+        print('已清空所有数据')
+
+    @staticmethod
+    def run_sql(sql, *values):
+        """跑sql程序"""
+        db = pymysql.connect(host='localhost', user='root', password='700617',
+                             database='todo', charset='utf8')
         cursor = db.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, *values)
         cursor.close()
         db.commit()
         db.close()
 
-        print('已清空所有数据')
+    @staticmethod
+    def show_sql(sql):
+        """展示SQL数据"""
+        db = pymysql.connect(host='localhost', user='root', password='700617',
+                             database='todo', charset='utf8')
+        return pd.read_sql(sql, db)
 
 
 def main():
