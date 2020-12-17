@@ -2,7 +2,7 @@ import pymysql
 import pandas as pd
 
 
-class Todo():
+class Todo:
     SUPPORTED_COMMANDS = ['add', 'show_now', 'show_finish', 'finish', 'clear', 'exit']
     db = pymysql.connect(host='localhost', user='root', password='700617',
                          database='todo', charset='utf8')
@@ -43,7 +43,6 @@ class Todo():
         db.commit()
         db.close()
 
-
         print('\n' + name + '已添加为当前任务')
         self.show_now()
 
@@ -59,35 +58,34 @@ class Todo():
         """
         data = pd.read_sql(sql, db)
 
-        dir = {}
+        finish_dir = {}
         key = 1
 
         if data.empty:
             print('\n当前没有任务')
         else:
             for v in data['name']:
-                dir[key] = v
+                finish_dir[key] = v
                 key = key + 1
-            print(dir)
+            print(finish_dir)
             k = input('请选择已完成的编号：')
             try:
-                name = dir[int(k)]
+                name = finish_dir[int(k)]
                 cursor = db.cursor()
                 query = """update to_do_list set finish = "是" where name = (%s)"""
-                values = (name)
+                values = name
                 cursor.execute(query, values)
                 cursor.close()
                 db.commit()
                 db.close()
                 print('\n该任务已完成')
-            except:
+            except KeyError:
                 print('无效编号')
 
             self.show_now()
 
-
-
-    def show_now(self):
+    @staticmethod
+    def show_now():
         """展示所有未完成任务"""
 
         db = pymysql.connect(host='localhost', user='root', password='700617',
@@ -106,7 +104,8 @@ class Todo():
             for v in data['name']:
                 print(v)
 
-    def show_finish(self):
+    @staticmethod
+    def show_finish():
         """展示所有完成任务"""
 
         db = pymysql.connect(host='localhost', user='root', password='700617',
@@ -125,7 +124,8 @@ class Todo():
             for v in data['name']:
                 print(v)
 
-    def clear(self):
+    @staticmethod
+    def clear():
         """清空所有任务"""
 
         db = pymysql.connect(host='localhost', user='root', password='700617',
@@ -139,7 +139,6 @@ class Todo():
         cursor.close()
         db.commit()
         db.close()
-
 
         print('已清空所有数据')
 
