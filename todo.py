@@ -3,107 +3,93 @@ import pandas as pd
 
 
 class Todo:
-    SUPPORTED_COMMANDS = ['add', 'show_now', 'show_finish', 'finish', 'clear', 'exit']
+    SUPPORTED_COMMANDS = ['add', 'show', 'show_finish', 'finish', 'clear', 'exit']
 
     def run(self):
         while True:
-            command = input("\n请提供您的命令（add/show_now/show_finish/finish/clear/exit): ")
+            command = input("\n请提供您的命令（add/show/show_finish/finish/clear/exit): ")
             if command not in self.SUPPORTED_COMMANDS:
                 print('\n')
                 print("您输入的指令不支持，请重试.")
                 print('\n')
                 continue
             if command == 'add':
-                self.add()
-            elif command == 'show_now':
-                self.show()
+                self.add_task()
+            elif command == 'show':
+                self.show_task()
             elif command == 'show_finish':
-                self.show(False)
+                self.show_task(False)
             elif command == 'finish':
-                self.finish()
+                self.finish_task()
             elif command == 'clear':
-                self.clear()
+                self.clear_all_tasks()
             else:
                 break
 
-    def add(self):
-        """增加一条任务"""
-
+    def add_task(self):
         name = input('请输入任务名称：')
         sql = """insert into to_do_list (name, now) values (%s, %s)"""
         values = (name, True)
         self.run_sql(sql, values)
 
         print('\n' + name + '已添加为当前任务')
-        self.show()
+        self.show_task()
 
-    def finish(self):
-        """选择一项任务标记完成"""
-
+    def finish_task(self):
         sql = """
         select name from to_do_list
         where now = True
         """
-        data = self.show_sql(sql)
-
-        finish_dir = {}
-        key = 1
+        data = self.show_sql_data(sql)['name']
+        data.index = data.index + 1
+        data.index.name = '编号'
 
         if data.empty:
             print('\n当前没有任务')
         else:
-            for v in data['name']:
-                finish_dir[key] = v
-                key = key + 1
-            print(finish_dir)
-            k = input('请选择已完成的编号：')
+            print(data)
+            k = int(input('请选择已完成的编号：'))
             try:
-                name = finish_dir[int(k)]
+                values = data[k]
                 sql = """update to_do_list set now = False where name = (%s)"""
-                values = name
                 self.run_sql(sql, values)
                 print('\n该任务已完成')
             except KeyError:
-                print('无效编号')
+                print('无效的编号')
 
-            self.show()
+            self.show_task()
 
-    def show(self, now=True):
-        """展示任务,True展示当前，False展示完成"""
-
+    def show_task(self, now=True):
         if now:
             sql = """select name from to_do_list where now = True"""
         else:
             sql = """select name from to_do_list where now = False"""
+        data = self.show_sql_data(sql)
 
-        data = self.show_sql(sql)
+        if data.empty:
+            if now:
+                print('\n当前没有任务')
+            else:
+                print('\n当前没有未完成任务')
+        if not data.empty:
+            if now:
+                print('\n当前任务有：')
+                for v in data['name']:
+                    print(v)
+            else:
+                print('\n已完成任务有：')
+                for v in data['name']:
+                    print(v)
 
-        if data.empty and now:
-            print('\n当前没有任务')
-        elif data.empty and not now:
-            print('\n当前没有未完成任务')
-        elif not data.empty and now:
-            print('\n当前任务有：')
-            for v in data['name']:
-                print(v)
-        elif not data.empty and not now:
-            print('\n已完成任务有：')
-            for v in data['name']:
-                print(v)
-
-    def clear(self):
-        """清空所有任务"""
-
+    def clear_all_tasks(self):
         sql = """
         delete from to_do_list
         """
         self.run_sql(sql)
-
         print('已清空所有数据')
 
     @staticmethod
     def run_sql(sql, *values):
-        """跑sql程序"""
         db = pymysql.connect(host='localhost', user='root', password='700617',
                              database='todo', charset='utf8')
         cursor = db.cursor()
@@ -113,8 +99,7 @@ class Todo:
         db.close()
 
     @staticmethod
-    def show_sql(sql):
-        """展示SQL数据"""
+    def show_sql_data(sql):
         db = pymysql.connect(host='localhost', user='root', password='700617',
                              database='todo', charset='utf8')
         return pd.read_sql(sql, db)
