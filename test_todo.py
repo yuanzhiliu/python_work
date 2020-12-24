@@ -8,18 +8,19 @@ import pymysql
 
 class TestTodo(unittest.TestCase):
 
-    def test_Todo_add(self):
+    def test_Todo_add_task(self):
         todo = Todo()
 
         sys.stdin = io.StringIO('测试aaa')
         todo.add_task()
 
-        db = pymysql.connect(host='localhost', user='root', password='700617',
-                             database='todo', charset='utf8')
         sql = """select name from to_do_list where now = True"""
-        data = pd.read_sql(sql, db)
+        data = todo.show_sql_data(sql)
 
         self.assertIn('测试aaa', data['name'].values)
+
+        sql = """delete from to_do_list where name = '测试aaa' """
+        todo.run_sql(sql)
 
 
 if __name__ == '__main__':
